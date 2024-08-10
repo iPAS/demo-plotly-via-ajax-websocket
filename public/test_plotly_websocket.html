@@ -40,13 +40,16 @@
 
         // Keep only the last 100 points visible
         var maxPoints = 100;
+        var timeRange = [
+          new Date(Math.max(0, newData.time - maxPoints)).toLocaleTimeString(),
+          new Date(newData.time).toLocaleTimeString(),
+        ];
+        console.log(timeRange);
         Plotly.relayout("chart", {
-          "xaxis.range": [
-            Math.max(0, new Date(newData.time) - maxPoints),
-            new Date(newData.time),
-          ],
+          "xaxis.range": timeRange,
         });
       }
+
 
       // Create a WebSocket connection to the server
       const ws = new WebSocket("ws://localhost:3000");
@@ -54,6 +57,7 @@
       // Handle incoming messages
       ws.onmessage = function (event) {
         const newData = JSON.parse(event.data);
+        console.log(newData);
         updateChart(newData);
       };
 
