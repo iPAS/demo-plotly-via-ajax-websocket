@@ -13,6 +13,15 @@ app.get('/data-endpoint', (req, res) => {
     res.json({time, value});
 });
 
+app.get('/GetADC.cgi', (req, res) => {
+    values = [];
+    for (i = 0; i < 100; i++) {
+        const value = Math.random() * 100;
+        values.push(value);
+    }
+    res.json(values);
+});
+
 // XXX: We will use the 'http' to handle this task instead
 // app.listen(port, () => {
 //     console.log(`Server running at http://localhost:${port}`);
