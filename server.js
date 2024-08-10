@@ -2,6 +2,8 @@ const express = require('express');
 const app = express();
 const port = 3000;
 
+app.use(express.static('public'));
+
 app.get('/data-endpoint', (req, res) => {
     const time = Date.now();
     const value = Math.random() * 100;
