@@ -14,9 +14,9 @@ app.get('/data-endpoint', (req, res) => {
 });
 
 app.get('/GetADC.cgi', (req, res) => {
-    values = [];
-    for (i = 0; i < 100; i++) {
-        const value = Math.random() * 100;
+    var values = [];
+    for (i = 0; i < 10; i++) {
+        const value = Math.random() * 3.3;
         values.push(value);
     }
     res.json(values);

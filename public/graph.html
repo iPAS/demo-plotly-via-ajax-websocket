@@ -4,7 +4,6 @@
 <head>
   <!-- 🦀 -->
   <title>ADC Graph</title>
-  <script src="https://unpkg.com/vue@2"></script>
   <script src="https://cdn.plot.ly/plotly-2.34.0.min.js"></script>
 </head>
 
@@ -16,28 +15,10 @@
       <tr valign="top">
         <td width="80">&nbsp;</td>
 
-        <td width="500">
-          <h1>Real-time ADC Graph</h1>
-
-          <h2>{{ title }}</h2>
+        <td width="1024">
+          <h1>Real-time ADC Data</h1>
 
           <div id="divPlotly"></div>
-
-          <!--
-          <table width="100%" border="1">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Value</th>
-              </tr>
-            </thead>
-            <tr valign="top"
-              v-for="point in points" :key="point.t">
-              <td>{{ point.t }}</td>
-              <td>{{ point.v }}</td>
-            </tr>
-          </table>
-          -->
 
           <button onclick="updateAdcData()">Update</button>
           <input type="checkbox" id="checkboxRecurring" onchange='onCBReChange(this)'>auto</input>
@@ -49,7 +30,7 @@
   </div>
 
   <script>
-    var xhr;
+    const gettingPeriod = 1000;  // Every 1000 ms
 
     // Initialize the chart with empty data
     var trace = {
@@ -59,39 +40,55 @@
       line: { color: "#17BECF" },
     };
     var layout = {
-      title: "Real-Time Data",
+      // title: "Real-Time Data",
       xaxis: { title: "Time" },
       yaxis: { title: "Value" },
     };
     Plotly.newPlot("divPlotly", [trace], layout);
 
     // Update the chart with new data
-    updatePlotly = function (points) {
-      for (var i = 0; i < points.length; i++) {
-        //var time = new Date(points[i].t).toLocaleTimeString();
-        var time = points[i].t;
-        var value = points[i].v;
-        Plotly.extendTraces("divPlotly", { x: [time], y: [value] }, [0]);
-      }
+    updatePlotly = function (point) {
+      console.log(point);
+      Plotly.extendTraces("divPlotly", { x: [[point.time]], y: [[point.value]] }, [0]);
     }
 
     // Update the ADC data every second
+    var xhr = new XMLHttpRequest();
+
+    time_format = function (t) {
+      var dt = new Date(t);
+      return dt.valueOf();
+      return dt.toLocaleTimeString() + `.${dt.getMilliseconds()}`;
+    }
+
     updateAdcData = function () {
       xhr.onreadystatechange = function () {
         if (this.readyState == XMLHttpRequest.DONE
         &&  this.status == 200) {
-          var response = JSON.parse(this.responseText);
-          app.points = [];
-          var now = new Date();
-          for (var i = 0; i < response.length; i++) {
-            var time = now - (response.length - i) * 10;  // 10 ms per point
-            item = { t: time, v: response[i] };
-            app.points.push(item);
 
-            // Update the chart with new data
-            updatePlotly(item);
+          // Update the chart with new data
+          var response = JSON.parse(this.responseText);
+          const now = Date.now();
+
+          for (var i = 0; i < response.length; i++) {
+            var t = now - (response.length-1 - i) * gettingPeriod / response.length;  // 10 ms per point
+            const time = time_format(t);
+            updatePlotly({ time: time, value: response[i] });
           }
-          app.points = response;  // Apply the new ADC data points to Vue object's data
+
+          // Keep only data in a period to be visible
+          var t_start = now - gettingPeriod * 10;
+          var t_end = now;
+          var timeRange = [ time_format(t_start), time_format(t_end) ];
+          console.log(timeRange);          
+          var plotlyView = {
+            xaxis: {
+              type: 'date',
+              range: timeRange,
+            },
+          };
+          Plotly.relayout("divPlotly", plotlyView);
+        
         }
       }
 
@@ -101,7 +98,7 @@
       // Recursively call this function if checked
       recurring = document.getElementById("checkboxRecurring").checked;
       if (recurring) {
-        setTimeout(updateAdcData, 1000, true);
+        setTimeout(updateAdcData, gettingPeriod, true);
       }
     }
 
@@ -111,29 +108,6 @@
         updateAdcData(true);
       }
     }
-
-    // Vue
-    var app = new Vue({
-      el: '#app',
-      data: {
-        title: 'ADC Data:',
-        points: [
-          { t: '0', v: '0' },
-          { t: '1', v: '0' },
-          { t: '2', v: '0' },
-        ],
-      },
-      //methods: {
-      //  humanizeBoolean: function (b) {
-      //    return b ? 'Yes' : 'No'
-      //  },
-      //},
-      created: function () {
-        console.log('Vue app created');
-        xhr = new XMLHttpRequest();
-        // updateAdcData();
-      },
-    })
   </script>
 
 </body>
