@@ -31,6 +31,7 @@
 
   <script>
     const gettingPeriod = 1000;  // Every 1000 ms
+    const viewSizeSecond = 10;  // 10 seconds
 
     // Initialize the chart with empty data
     var trace = {
@@ -46,11 +47,6 @@
     };
     Plotly.newPlot("divPlotly", [trace], layout);
 
-    // Update the chart with new data
-    updatePlotly = function (point) {
-      console.log(point);
-      Plotly.extendTraces("divPlotly", { x: [[point.time]], y: [[point.value]] }, [0]);
-    }
 
     // Update the ADC data every second
     var xhr = new XMLHttpRequest();
@@ -61,34 +57,55 @@
       return dt.toLocaleTimeString() + `.${dt.getMilliseconds()}`;
     }
 
+    getTimeRange = function (viewSizeSecond) {
+      var now = Date.now();
+      var t_start = now - gettingPeriod * viewSizeSecond;
+      var t_end = now;
+      return [ time_format(t_start), time_format(t_end) ];
+    }
+
+    updateLayout = function (timeRange) {
+      //console.log(timeRange);
+      var plotlyView = {
+        xaxis: {
+          type: 'date',
+          range: timeRange,
+        },
+      };
+      Plotly.relayout("divPlotly", plotlyView);
+    }
+
+    updatePlotly = function (point) {  // Update the chart with new data
+      console.log(point);
+      Plotly.extendTraces("divPlotly", { x: [[point.time]], y: [[point.value]] }, [0]);
+    }
+
+    updateChart = function (samples, index, beginTime) {
+      if (index >= samples.length) {
+        return;
+      }
+
+      const samplingPeriod = gettingPeriod / samples.length;
+      const time = time_format(beginTime - (samples.length - 1 - index) * samplingPeriod);
+      updatePlotly({ time: time, value: samples[index] });
+      updateLayout(getTimeRange(viewSizeSecond));
+
+      // TODO: Remove data older than viewSizeSecond
+
+      //updateChart(samples, index + 1, beginTime);  // Next sample
+      setTimeout(() => {
+        updateChart(samples, index + 1, beginTime);
+      }, samplingPeriod * 0.8);  // 0.8 is for safety to prevent overlapping
+    }
+
     updateAdcData = function () {
       xhr.onreadystatechange = function () {
         if (this.readyState == XMLHttpRequest.DONE
         &&  this.status == 200) {
-
           // Update the chart with new data
           var response = JSON.parse(this.responseText);
-          const now = Date.now();
-
-          for (var i = 0; i < response.length; i++) {
-            var t = now - (response.length-1 - i) * gettingPeriod / response.length;  // 10 ms per point
-            const time = time_format(t);
-            updatePlotly({ time: time, value: response[i] });
-          }
-
-          // Keep only data in a period to be visible
-          var t_start = now - gettingPeriod * 10;
-          var t_end = now;
-          var timeRange = [ time_format(t_start), time_format(t_end) ];
-          console.log(timeRange);          
-          var plotlyView = {
-            xaxis: {
-              type: 'date',
-              range: timeRange,
-            },
-          };
-          Plotly.relayout("divPlotly", plotlyView);
-        
+          const now = Date.now(); 
+          updateChart(response, 0, now);
         }
       }
 
