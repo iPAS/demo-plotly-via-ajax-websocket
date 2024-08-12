@@ -75,9 +75,9 @@
       Plotly.relayout("divPlotly", plotlyView);
     }
 
-    updatePlotly = function (point) {  // Update the chart with new data
-      console.log(point);
-      Plotly.extendTraces("divPlotly", { x: [[point.time]], y: [[point.value]] }, [0]);
+    updatePlotly = function (point, maxKeptPoints = 100) {  // Update the chart with new data
+      //console.log(point);
+      Plotly.extendTraces("divPlotly", { x: [[point.time]], y: [[point.value]] }, [0], maxKeptPoints);
     }
 
     updateChart = function (samples, index, beginTime) {
@@ -87,10 +87,8 @@
 
       const samplingPeriod = gettingPeriod / samples.length;
       const time = time_format(beginTime - (samples.length - 1 - index) * samplingPeriod);
-      updatePlotly({ time: time, value: samples[index] });
+      updatePlotly({ time: time, value: samples[index] }, samples.length * viewSizeSecond);
       updateLayout(getTimeRange(viewSizeSecond));
-
-      // TODO: Remove data older than viewSizeSecond
 
       //updateChart(samples, index + 1, beginTime);  // Next sample
       setTimeout(() => {
